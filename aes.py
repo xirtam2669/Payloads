@@ -1,35 +1,36 @@
-import sys
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
-from os import urandom
-import hashlib
+import binascii
+import os
+import sys
 
-def AESencrypt(plaintext, key):
-    k = hashlib.sha256(KEY).digest()
-    iv = 16 * b'\x00'
-    plaintext = pad(plaintext, AES.block_size)
-    cipher = AES.new(k, AES.MODE_CBC, iv)
-    ciphertext = cipher.encrypt(plaintext)
-    return ciphertext,key
-  
-def dropFile(key, ciphertext):
-  with open("cipher.bin", "wb") as fc:
-    fc.write(ciphertext)
-  with open("key.bin", "wb") as fk:
-    fk.write(key)
-  #print('char AESkey[] = { 0x' + ', 0x'.join(hex(x)[2:] for x in KEY) + ' };')
-  #print('unsigned char AESshellcode[] = { 0x' + ', 0x'.join(hex(x)[2:] for x in ciphertext) + ' };')
- 
+def to_csharp_byte_array(data):
+    return ', '.join(f'0x{byte:02x}' for byte in data)
 
-try:
-    file = open(sys.argv[1], "rb")
-    content = file.read()
-except:
-    print("Usage: AES_cryptor.py PAYLOAD_FILE")
-    sys.exit()
+shellcode_file = sys.argv[1]
+with open(shellcode_file, "rb") as f:
+    shellcode = f.read()
 
+# AES key
+key = b'1234567890123456'  # 16-byte key for AES-128
 
-KEY = urandom(16)
-ciphertext, key = AESencrypt(content, KEY)
+# AES Initialization Vector (IV) - must be 16 bytes long for AES-128
+iv = b'1234567890123456'  # Static IV
 
-dropFile(KEY,ciphertext)
+# Create AES cipher in CBC mode
+cipher = AES.new(key, AES.MODE_CBC, iv)
+
+#Pad shellcode
+padded_shellcode = pad(shellcode, AES.block_size)
+
+# Encrypt the padded shellcode
+encrypted_shellcode = cipher.encrypt(padded_shellcode)
+
+#Uncomment if you'd plan to change key/IV, as you'll need this to update butterfly_effect
+#print("byte[] key = new byte[] { " + csharp_byte_array_key + " };")
+#print("byte[] iv = new byte[] { " + csharp_byte_array_iv + " };")
+
+with open("cipher.bin", "wb") as f:
+	f.write(encrypted_shellcode)
+
+print("Encrypted shellcode has been written to file: cipher.bin")
